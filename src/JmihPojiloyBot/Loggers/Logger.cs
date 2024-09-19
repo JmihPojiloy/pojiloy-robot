@@ -1,25 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace JmihPojiloyBot.Loggers
+﻿namespace JmihPojiloyBot.Loggers
 {
     public class Logger 
     {
-        public List<Log> Logs { get;}
+        private static readonly string _logsFilename = $"{DateTime.Now.ToString("yyyy-MM-dd")}_logs.txt";
 
-        private readonly string _logsFilename = $"{DateTime.Now.ToString("yyyy-MM-dd")}_logs.txt";
+        private static string _path = string.Empty;
 
-        private string _path = string.Empty;
+        private static string _filePath = string.Empty;
 
-        private string _filePath = string.Empty;
-
-        public Logger()
+        static Logger()
         {
-            Logs = new List<Log>();
-
             _path = Path.Combine(Directory.GetCurrentDirectory(), "Logs");
             _filePath = Path.Combine(_path, _logsFilename);
 
@@ -28,28 +18,27 @@ namespace JmihPojiloyBot.Loggers
                 Directory.CreateDirectory(_path);
             }
 
-            if (File.Exists(_filePath))
+            if (!File.Exists(_filePath))
             {
                 File.Create(_filePath).Close();
             }
         }
 
-        public void Log(Log log)
+        public static async Task Log(string message)
         {
-            Logs.Add(log);
-            SaveLogs(log);
+            await SaveLogs(message);
+            //await Console.Out.WriteLineAsync(message);
         }
 
-        private void SaveLogs(Log log)
+        private static async Task SaveLogs(string message)
         {
-
-            using (FileStream fs = new FileStream(_filePath, FileMode.Open, FileAccess.Write, FileShare.ReadWrite))
+            using (FileStream fs = new FileStream(_filePath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite))
             {
                 fs.Seek(0, SeekOrigin.End);
 
                 using (StreamWriter writer = new StreamWriter(fs))
                 {
-                    writer.WriteLine(log.ToString());
+                    await writer.WriteLineAsync(message);
                 }
             }
         }

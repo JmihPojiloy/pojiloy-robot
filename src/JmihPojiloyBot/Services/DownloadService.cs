@@ -1,5 +1,6 @@
 ﻿using JmihPojiloyBot.Loggers;
 using JmihPojiloyBot.Models;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace JmihPojiloyBot.Services
@@ -7,19 +8,30 @@ namespace JmihPojiloyBot.Services
     public class DownloadService
     {
         private readonly HttpClient _httpClient;
-        private readonly Logger _logger;
         private readonly TimeSpan _retryInterval;
+        private readonly string _downloadsPath;
 
-        public DownloadService(HttpClient httpClient, Logger logger, TimeSpan retryInterval)
+        public ConcurrentDictionary<string,StatisticModel> statisticModels = new ConcurrentDictionary<string, StatisticModel>();
+
+        public DownloadService(HttpClient httpClient, TimeSpan retryInterval, string downloadsPath)
         {
             _httpClient = httpClient;
-            _logger = logger;
+            _downloadsPath = downloadsPath;
             _retryInterval = retryInterval;
         }
 
-        public async Task<DownloadResult> DownloadFileAsync(UrlModel urlModel, CancellationToken ct)
+        public async Task<int> DownloadFileAsync(UrlModel urlModel, CancellationToken ct)
         {
+
+            var statisticModel = statisticModels.GetOrAdd(urlModel.description!, new StatisticModel(urlModel.description!));
+
+            if(statisticModel == null)
+            {
+                return 0;
+            }
+
             var stopWatch = Stopwatch.StartNew();
+
             try
             {
                 if(ct.IsCancellationRequested)
@@ -36,44 +48,90 @@ namespace JmihPojiloyBot.Services
 
                 if (response.StatusCode == System.Net.HttpStatusCode.OK)
                 {
-                    await SaveFile(response, urlModel.description);
-
-                    _logger.Log(new Log(urlModel.description, response.StatusCode.ToString()));
+                    await SaveFile(response, urlModel.description!);
 
                     stopWatch.Stop();
-                    
-                    return new DownloadResult(stopWatch.Elapsed, urlModel.description, "OK");
+
+                    statisticModels.AddOrUpdate(urlModel.description!, statisticModel,
+                        (key, existingValue) =>
+                        {
+                            existingValue.TotalTime += stopWatch.Elapsed;
+                            existingValue.Tries += 1;
+                            existingValue.Description = "download";
+                            existingValue.Statistic.TryAdd(
+                                existingValue.Tries, (existingValue.Description, existingValue.TotalTime));
+                            return existingValue;
+                        });
+
+                    await Logger.Log(statisticModel.ToString());
+
+                    return 1;
                 }
 
                 throw new HttpRequestException($"Fetch {urlModel.description} returned status {response.StatusCode}");
             }
-            catch(OperationCanceledException ex)
+            catch(OperationCanceledException)
             {
                 stopWatch.Stop();
-                _logger.Log(new Log(ex.Message, "TIME IS UP!"));
-                return new DownloadResult(stopWatch.Elapsed, urlModel.description, "TIME IS UP!");
+
+                statisticModels.AddOrUpdate(urlModel.description!, statisticModel,
+                    (key, existingValue) =>
+                    {
+                        existingValue.TotalTime += stopWatch.Elapsed;
+                        existingValue.Tries += 1;
+                        existingValue.Description = "TIME IS UP!";
+                        existingValue.Statistic.TryAdd(
+                            existingValue.Tries, (existingValue.Description, existingValue.TotalTime));
+                        return existingValue;
+                    });
+
+                await Logger.Log(statisticModel.ToString());
+
+                return 0;
             }
             catch (HttpRequestException ex)
             {
-                Console.WriteLine($"{ex.Message}. Next try in {_retryInterval.TotalMinutes} minutes.");
-
-                _logger.Log(new Log(ex.Message, $"Next try in {_retryInterval.TotalMinutes} minutes"));
-
                 await Task.Delay(_retryInterval);
+                stopWatch.Stop();
 
+                statisticModels.AddOrUpdate(urlModel.description!, statisticModel,
+                    (key, existingValue) =>
+                    {
+                        existingValue.TotalTime += stopWatch.Elapsed;
+                        existingValue.Tries += 1;
+                        existingValue.Description = $"{ex.Message}. Next try in {_retryInterval.TotalMinutes} minutes.";
+                        existingValue.Statistic.TryAdd(
+                            existingValue.Tries, (existingValue.Description, existingValue.TotalTime));
+                        return existingValue;
+                    });
+
+                await Logger.Log(statisticModel.ToString());
                 return await DownloadFileAsync(urlModel, ct);
             }
             catch(Exception ex)
             {
                 stopWatch.Stop();
-                _logger.Log(new Log(ex.Message, "FAIL"));
-                return new DownloadResult(stopWatch.Elapsed, urlModel.description, "FAIL");
+
+                statisticModels.AddOrUpdate(urlModel.description!, statisticModel,
+                    (key, existingValue) =>
+                    {
+                        existingValue.TotalTime += stopWatch.Elapsed;
+                        existingValue.Tries += 1;
+                        existingValue.Description = $"FAIL - {ex.Message}.";
+                        existingValue.Statistic.TryAdd(
+                            existingValue.Tries, (existingValue.Description, existingValue.TotalTime));
+                        return existingValue;
+                    });
+
+                await Logger.Log(statisticModel.ToString());
+
+                return 0;
             }
         }
 
         private async Task SaveFile(HttpResponseMessage reponse, string fileName)
         {
-            string downloadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "Downloads");
+            string downloadsFolder = Path.Combine(Directory.GetCurrentDirectory(), _downloadsPath);
 
             if (!Directory.Exists(downloadsFolder))
             {
@@ -81,7 +139,7 @@ namespace JmihPojiloyBot.Services
             }
 
 
-            string destonationPath = Path.Combine(downloadsFolder, $"{fileName}.zip");
+            string destonationPath = Path.Combine(downloadsFolder, $"{fileName}_.zip");
 
             using (var fs = new FileStream(destonationPath, FileMode.Create, FileAccess.Write, FileShare.None))
             {

@@ -1,31 +1,47 @@
-﻿using JmihPojiloyBot.Loggers;
-using JmihPojiloyBot.Services;
+﻿using JmihPojiloyBot.Services;
 using System.Diagnostics;
 
 class Program
 {
-    private static readonly TimeSpan retryInterval = TimeSpan.FromMinutes(5);
-    private static readonly TimeSpan executionTimeout = TimeSpan.FromHours(1);
-    private static readonly string requestUrl = "https://www.cruclub.ru/Data/Json/System/CosFeedProxy.ashx";
-    private static readonly string[] requests = new[]
-    {
-            $"{requestUrl}?param=pricing.{1}",
-            $"{requestUrl}?param=pricing.{2}",
-            $"{requestUrl}?param=pricing.{3}",
-            $"{requestUrl}?param=pricing.{4}",
-            $"{requestUrl}?param=catalog",
-            $"{requestUrl}?param=itinerary"
-        };
+    //Default parameters
+    private static string requestUrl = "https://www.cruclub.ru/Data/Json/System/CosFeedProxy.ashx";
 
+    private static string downloadsPath = "Downloads";
+    private static int interval = 5;
+    private static int executionTime = 60;
+
+    private static List<string> parameters = new List<string>
+    {
+        "pricing.PInd",
+        "pricing.MyAllinc",
+        "pricing.MyCruise",
+        "catalog",
+        "itinerary"
+    }; 
 
     static async Task Main(string[] args)
     {
-        var httpClient = HttpService.GetHttpClient();
-        var logger = new Logger();
-        var getUrlsService = new GetUrlsService(httpClient, logger);
-        var downloadService = new DownloadService(httpClient, logger, retryInterval);
 
-        using var ctsUrl = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        //Prepare
+        if (args.Length > 0)
+        {
+            Prepare(args);
+        }
+
+        string[] requests = new string[parameters.Count];
+        for (int i = 0; i < parameters.Count; i++)
+        {
+            requests[i] = $"{requestUrl}?param={parameters[i]}";
+        }
+
+        TimeSpan retryInterval = TimeSpan.FromMinutes(interval);
+        TimeSpan executionTimeout = TimeSpan.FromMinutes(executionTime);
+
+        var httpClient = HttpService.GetHttpClient();
+        var getUrlsService = new GetUrlsService(httpClient);
+        var downloadService = new DownloadService(httpClient,  retryInterval, downloadsPath);
+
+        using var ctsUrl = new CancellationTokenSource(TimeSpan.FromMinutes(1));
         var ctUrl = ctsUrl.Token;
 
         var fetchGetTasks = requests.Select(r => getUrlsService.GetUrlsAsync(r, ctUrl)).ToArray();
@@ -35,7 +51,7 @@ class Program
         {
             if (model?.error != null || model?.url == null)
             {
-                Console.WriteLine($"{DateTime.Now} {model?.description} - {model?.error}");
+                Console.WriteLine($"{DateTime.Now} {model?.description} - {model?.error} - ERROR");
                 continue;
             }
             Console.WriteLine($"{DateTime.Now} {model?.description} - OK");
@@ -54,14 +70,40 @@ class Program
 
         stopWatch.Stop();
 
-        foreach (var result in results)
+        Console.WriteLine();
+
+        foreach (var stat in downloadService.statisticModels)
         {
-            Console.WriteLine(result);
+            Console.WriteLine(stat.Value.ToString());
         }
 
         Console.WriteLine(
-            $"\n[DESCRIPTION] completed {urlsModelsResult.Count()}/{results.Count()} " +
+            $"\n[DESCRIPTION] completed {results.Count(x => x == 1)}/{urlsModelsResult.Count()} " +
             $"time {stopWatch.Elapsed.ToString(@"hh\:mm\:ss")}");
     }
 
+    static void Prepare(string[] args)
+    {
+        downloadsPath = args.FirstOrDefault(arg => arg.StartsWith("--downloads="))?.Split('=')[1] ?? downloadsPath;
+
+        interval = args
+            .Where(arg => arg.StartsWith("--interval="))
+            .Select(arg => int.TryParse(arg.Split('=')[1], out int parsedInterval) ? parsedInterval : (int?)null)
+            .FirstOrDefault() ?? interval;
+
+        executionTime = args
+            .Where(arg => arg.StartsWith("--execution="))
+            .Select(arg => int.TryParse(arg.Split('=')[1], out int parsedExecutionTime) ? parsedExecutionTime : (int?)null)
+            .FirstOrDefault() ?? executionTime;
+
+        var additionalParameters = args
+            .Where(arg => arg.StartsWith("--parameter="))
+            .Select(arg => arg.Split('=')[1])
+            .ToList();
+
+        if (additionalParameters.Any())
+        {
+            parameters = additionalParameters;
+        }
+    }
 }

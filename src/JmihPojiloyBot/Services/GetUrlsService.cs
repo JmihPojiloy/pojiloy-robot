@@ -7,66 +7,60 @@ namespace JmihPojiloyBot.Services
     public class GetUrlsService
     {
         private readonly HttpClient _httpClient;
-        private readonly Logger _logger;
 
-        public GetUrlsService(HttpClient httpClient, Logger logger)
+        public GetUrlsService(HttpClient httpClient)
         {
             _httpClient = httpClient;
-            _logger = logger;
         }
 
         public async Task<UrlModel?> GetUrlsAsync(string request, CancellationToken ct)
         {
             try
             {
-                if (ct.IsCancellationRequested)
-                {
-                    ct.ThrowIfCancellationRequested();
-                }
-
                 var response = await _httpClient.GetAsync(request);
                 response.EnsureSuccessStatusCode();
                 var jsonResponse = await response.Content.ReadAsStringAsync();
 
                 var urlModel = JsonSerializer.Deserialize<UrlModel>(jsonResponse)!;
 
+                if (ct.IsCancellationRequested)
+                {
+                    throw new OperationCanceledException(urlModel.ToString());
+                }
+
                 if(urlModel.error != null)
                 {
-                    throw new HttpRequestException($"Code: {urlModel.error.code} Description: {urlModel.error.description}");
+                    throw new HttpRequestException(urlModel.ToString());
                 }
 
                 urlModel.description = request.Substring(request.LastIndexOf('=') + 1);
 
-                _logger.Log(new Log(urlModel.description, response.StatusCode.ToString()));
-
+                await Logger.Log(urlModel.ToString()); 
                 return urlModel!;
             }
             catch (OperationCanceledException ex)
             {
-                _logger.Log(new Log(ex.Message, "TIME IS UP!"));
-                return new UrlModel { error = new Error { code = 0, description = "TIME IS UP!" } };
+                
+                var urlModelCancel = new UrlModel {description = ex.Message ,error = new Error { code = 0, description = "TIME IS UP!" } };
+                await Logger.Log(ex.Message);
+                return urlModelCancel;
             }
             catch (HttpRequestException ex)
             {
-                var log = new Log(request, ex.Message);
 
                 if (ex.Message.Contains("500"))
                 {
-                    _logger.Log(log);
-
+                    await Logger.Log(ex.Message);
                     await Task.Delay(10000);
                     return await GetUrlsAsync(request, ct);
                 }
 
-                _logger.Log(log);
-
+                await Logger.Log(ex.Message);
                 return null;
             }
             catch(Exception ex)
             {
-                var log = new Log(request, $"error {ex.Message}");
-                _logger.Log(log);
-
+                await Logger.Log(ex.Message);
                 return null;
             }
         }
