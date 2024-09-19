@@ -23,6 +23,8 @@ namespace JmihPojiloyBot.Services
 
                 var urlModel = JsonSerializer.Deserialize<UrlModel>(jsonResponse)!;
 
+                urlModel.description = request.Substring(request.LastIndexOf('=') + 1);
+
                 if (ct.IsCancellationRequested)
                 {
                     throw new OperationCanceledException(urlModel.ToString());
@@ -33,7 +35,6 @@ namespace JmihPojiloyBot.Services
                     throw new HttpRequestException(urlModel.ToString());
                 }
 
-                urlModel.description = request.Substring(request.LastIndexOf('=') + 1);
 
                 await Logger.Log(urlModel.ToString()); 
                 return urlModel!;
