@@ -41,7 +41,7 @@ namespace JmihPojiloyBot.Services
 
                 if(urlModel.url ==  null)
                 {
-                    throw new ArgumentNullException(nameof(urlModel));
+                    throw new ArgumentNullException();
                 }
 
                 var response = await _httpClient.GetAsync(urlModel.url);
