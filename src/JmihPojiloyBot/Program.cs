@@ -21,6 +21,7 @@ class Program
 
     static async Task Main(string[] args)
     {
+        Console.WriteLine("JP_BOT Started!");
 
         //Prepare
         if (args.Length > 0)
