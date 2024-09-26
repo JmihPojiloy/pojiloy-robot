@@ -2,34 +2,25 @@
 using JmihPojiloyBot.Models;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Exception = System.Exception;
 
 namespace JmihPojiloyBot.Services
 {
-    public class DownloadService
+    public class DownloadService(HttpClient httpClient, TimeSpan retryInterval, string downloadsPath)
     {
-        private readonly HttpClient _httpClient;
-        private readonly TimeSpan _retryInterval;
-        private readonly string _downloadsPath;
-
-        public ConcurrentDictionary<string,StatisticModel> statisticModels = new ConcurrentDictionary<string, StatisticModel>();
-
-        public DownloadService(HttpClient httpClient, TimeSpan retryInterval, string downloadsPath)
-        {
-            _httpClient = httpClient;
-            _downloadsPath = downloadsPath;
-            _retryInterval = retryInterval;
-        }
+        public readonly ConcurrentDictionary<string,StatisticModel> StatisticModels =
+            new ConcurrentDictionary<string, StatisticModel>();
 
         public async Task<int> DownloadFileAsync(UrlModel urlModel, CancellationToken ct)
         {
 
-            var statisticModel = statisticModels.GetOrAdd(urlModel.description!, new StatisticModel(urlModel.description!));
+            var statisticModel = StatisticModels.GetOrAdd(urlModel.Description!, new StatisticModel(urlModel.Description!));
 
             if(statisticModel == null)
             {
                 return 0;
             }
-
+            
             var stopWatch = Stopwatch.StartNew();
 
             try
@@ -44,18 +35,21 @@ namespace JmihPojiloyBot.Services
                     throw new ArgumentNullException();
                 }
 
-                var response = await _httpClient.GetAsync(urlModel.url);
+                var response = await httpClient.GetAsync(urlModel.url, ct);
 
                 if (response.StatusCode == System.Net.HttpStatusCode.OK)
                 {
-                    await SaveFile(response, urlModel.description!);
-
+                    await SaveFile(response, urlModel.Description!);
+                    
                     stopWatch.Stop();
 
-                    statisticModels.AddOrUpdate(urlModel.description!, statisticModel,
+                    var elapsed = stopWatch.Elapsed;
+
+
+                    StatisticModels.AddOrUpdate(urlModel.Description!, statisticModel,
                         (key, existingValue) =>
                         {
-                            existingValue.TotalTime += stopWatch.Elapsed;
+                            existingValue.TotalTime += elapsed;
                             existingValue.Tries += 1;
                             existingValue.Description = "download";
                             existingValue.Statistic.TryAdd(
@@ -63,21 +57,20 @@ namespace JmihPojiloyBot.Services
                             return existingValue;
                         });
 
-                    await Logger.Log(statisticModel.ToString());
-
                     return 1;
                 }
 
-                throw new HttpRequestException($"Fetch {urlModel.description} returned status {response.StatusCode}");
+                throw new HttpRequestException($"Fetch {urlModel.Description} returned status {response.StatusCode}");
             }
             catch(OperationCanceledException)
             {
                 stopWatch.Stop();
+                var elapsed = stopWatch.Elapsed;
 
-                statisticModels.AddOrUpdate(urlModel.description!, statisticModel,
+                StatisticModels.AddOrUpdate(urlModel.Description!, statisticModel,
                     (key, existingValue) =>
                     {
-                        existingValue.TotalTime += stopWatch.Elapsed;
+                        existingValue.TotalTime += elapsed;
                         existingValue.Tries += 1;
                         existingValue.Description = "TIME IS UP!";
                         existingValue.Statistic.TryAdd(
@@ -85,37 +78,44 @@ namespace JmihPojiloyBot.Services
                         return existingValue;
                     });
 
-                await Logger.Log(statisticModel.ToString());
-
                 return 0;
             }
             catch (HttpRequestException ex)
             {
-                await Task.Delay(_retryInterval);
                 stopWatch.Stop();
+                var elapsed = stopWatch.Elapsed;
 
-                statisticModels.AddOrUpdate(urlModel.description!, statisticModel,
+                StatisticModels.AddOrUpdate(urlModel.Description!, statisticModel,
                     (key, existingValue) =>
                     {
-                        existingValue.TotalTime += stopWatch.Elapsed;
+                        existingValue.TotalTime += elapsed;
                         existingValue.Tries += 1;
-                        existingValue.Description = $"{ex.Message}. Next try in {_retryInterval.TotalMinutes} minutes.";
+                        existingValue.Description = $"{ex.Message}. Next try in {retryInterval.TotalMinutes} minutes.";
                         existingValue.Statistic.TryAdd(
                             existingValue.Tries, (existingValue.Description, existingValue.TotalTime));
                         return existingValue;
                     });
-
-                await Logger.Log(statisticModel.ToString());
+                
+                await Task.Delay(retryInterval, ct);
+                
+                StatisticModels.AddOrUpdate(urlModel.Description!, statisticModel,
+                    (key, existingValue) =>
+                    {
+                        existingValue.TotalTime += retryInterval;
+                        return existingValue;
+                    });
+                
                 return await DownloadFileAsync(urlModel, ct);
             }
             catch(Exception ex)
             {
                 stopWatch.Stop();
+                var elapsed = stopWatch.Elapsed;
 
-                statisticModels.AddOrUpdate(urlModel.description!, statisticModel,
+                StatisticModels.AddOrUpdate(urlModel.Description!, statisticModel,
                     (key, existingValue) =>
                     {
-                        existingValue.TotalTime += stopWatch.Elapsed;
+                        existingValue.TotalTime += elapsed;
                         existingValue.Tries += 1;
                         existingValue.Description = $"FAIL - {ex.Message}.";
                         existingValue.Statistic.TryAdd(
@@ -123,15 +123,13 @@ namespace JmihPojiloyBot.Services
                         return existingValue;
                     });
 
-                await Logger.Log(statisticModel.ToString());
-
                 return 0;
             }
         }
 
-        private async Task SaveFile(HttpResponseMessage reponse, string fileName)
+        private async Task SaveFile(HttpResponseMessage response, string fileName)
         {
-            string downloadsFolder = Path.Combine(Directory.GetCurrentDirectory(), _downloadsPath);
+            var downloadsFolder = Path.Combine(Directory.GetCurrentDirectory(), downloadsPath);
 
             if (!Directory.Exists(downloadsFolder))
             {
@@ -139,12 +137,17 @@ namespace JmihPojiloyBot.Services
             }
 
 
-            string destonationPath = Path.Combine(downloadsFolder, $"{fileName}_.zip");
+            var destonationPath = Path.Combine(downloadsFolder, $"{fileName}_.zip");
 
-            using (var fs = new FileStream(destonationPath, FileMode.Create, FileAccess.Write, FileShare.None))
-            {
-                await reponse.Content.CopyToAsync(fs);
-            }
+            await using var fs = new FileStream(destonationPath, FileMode.Create, FileAccess.Write, FileShare.None);
+            await response.Content.CopyToAsync(fs);
         } 
+        public async Task SaveLogs()
+        {
+            foreach (var stat in StatisticModels.Values)
+            {
+                await Logger.Log(stat.ToString());
+            }
+        }
     }
 }

@@ -5,12 +5,12 @@ namespace JmihPojiloyBot.Models
 {
     public class UrlModel
     {
-        public Error? error { get; set; }
-        public object? warning { get; set; }
-        public string? url { get; set; }
+        public Error error { get; set; }
+        public object warning { get; set; }
+        public string url { get; set; }
 
         [JsonIgnore]
-        public string? description { get; set; }
+        public string Description { get; set; }
 
         public override string ToString()
         {
@@ -18,7 +18,7 @@ namespace JmihPojiloyBot.Models
 
             sb.AppendLine($"{DateTime.Now} ");
 
-            sb.AppendLine($"Url: {url} {warning} {description}");
+            sb.AppendLine($"url: {url} {warning} {Description}");
 
             if(error != null)
             {
@@ -36,12 +36,11 @@ namespace JmihPojiloyBot.Models
     public class Error
     {
         public int code { get; set; }
-        public string? description { get; set; }
+        public string description { get; set; }
 
         public override string ToString()
         {
-            return $"Error {code} - {description}";
+            return $"error {code} - {description}";
         }
     }
-
 }

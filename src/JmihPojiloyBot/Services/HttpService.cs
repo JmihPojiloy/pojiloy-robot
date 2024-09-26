@@ -2,7 +2,7 @@
 
 namespace JmihPojiloyBot.Services
 {
-    public class HttpService
+    public static class HttpService
     {
         public static HttpClient GetHttpClient()
         {

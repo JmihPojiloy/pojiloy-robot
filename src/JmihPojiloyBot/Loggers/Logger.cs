@@ -1,26 +1,24 @@
 ﻿namespace JmihPojiloyBot.Loggers
 {
-    public class Logger 
+    public static class Logger 
     {
-        private static readonly string _logsFilename = $"{DateTime.Now.ToString("yyyy-MM-dd")}_logs.txt";
+        private static readonly string LogsFilename = $"{DateTime.Now:yyyy-MM-dd}_logs.txt";
 
-        private static string _path = string.Empty;
-
-        private static string _filePath = string.Empty;
+        private static readonly string FilePath;
 
         static Logger()
         {
-            _path = Path.Combine(Directory.GetCurrentDirectory(), "Logs");
-            _filePath = Path.Combine(_path, _logsFilename);
+            var path = Path.Combine(Directory.GetCurrentDirectory(), "Logs");
+            FilePath = Path.Combine(path, LogsFilename);
 
-            if (!Directory.Exists(_path))
+            if (!Directory.Exists(path))
             {
-                Directory.CreateDirectory(_path);
+                Directory.CreateDirectory(path);
             }
 
-            if (!File.Exists(_filePath))
+            if (!File.Exists(FilePath))
             {
-                File.Create(_filePath).Close();
+                File.Create(FilePath).Close();
             }
         }
 
@@ -32,16 +30,11 @@
 
         private static async Task SaveLogs(string message)
         {
-            using (FileStream fs = new FileStream(_filePath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite))
-            {
-                fs.Seek(0, SeekOrigin.End);
+            await using var fs = new FileStream(FilePath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+            fs.Seek(0, SeekOrigin.End);
 
-                using (StreamWriter writer = new StreamWriter(fs))
-                {
-                    await writer.WriteLineAsync(message);
-                }
-            }
+            await using var writer = new StreamWriter(fs);
+            await writer.WriteLineAsync(message);
         }
-
     }
 }
