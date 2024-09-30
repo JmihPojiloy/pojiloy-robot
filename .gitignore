@@ -365,3 +365,4 @@ FodyWeavers.xsd
 # Ignore Downloads and Logs directories
 Downloads/
 Logs/
+.idea
