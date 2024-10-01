@@ -43,7 +43,7 @@ namespace JmihBojiloyBot_3_1.Loggers
 
             public static async Task ConsoleLog(string message)
             {
-                await Console.Out.WriteLineAsync(DateTime.Now + " " + message);
+                await Console.Out.WriteLineAsync($"{DateTime.Now} {message}");
             }
         }
 }

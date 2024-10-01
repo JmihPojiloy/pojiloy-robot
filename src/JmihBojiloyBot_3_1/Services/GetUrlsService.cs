@@ -46,8 +46,8 @@ namespace JmihPojiloyBot.Services
             {
                 var urlModelCancel = new UrlModel
                     { Description = ex.Message, error = new Error { code = 0, description = "TIME IS UP!" } };
-                await Logger.ConsoleLog(urlModelCancel.url + " " + ex.Message + " " + "Time is up!");
-                await Logger.ConsoleLog(urlModelCancel.url + " " + ex.Message);
+                await Logger.ConsoleLog($"{urlModelCancel.url} {urlModelCancel.url} Time is up!");
+                await Logger.ConsoleLog($"{urlModelCancel.url} {ex.Message}");
                 return urlModelCancel;
             }
             catch (HttpRequestException ex)
@@ -56,7 +56,7 @@ namespace JmihPojiloyBot.Services
                 if (ex.Message.Contains("500"))
                 {
                     await Logger.Log(ex.Message);
-                    await Logger.ConsoleLog("Download error 500; " + ex.Message + " next try at 5 min.");
+                    await Logger.ConsoleLog($"Download error 500; {ex.Message} next try at 5 min.");
                     await Task.Delay(interval, ct);
                     return await GetUrlsAsync(request, ct);
                 }
@@ -67,7 +67,7 @@ namespace JmihPojiloyBot.Services
             catch (Exception ex)
             {
                 await Logger.Log(ex.Message);
-                await Logger.ConsoleLog("Download error: " + ex.Message);
+                await Logger.ConsoleLog($"Download error: {ex.Message}");
                 return null;
             }
         }

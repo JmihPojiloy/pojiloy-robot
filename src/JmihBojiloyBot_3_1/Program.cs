@@ -15,6 +15,8 @@ internal static class Program
     private static int _downloadInterval = 10;
     private static int _downloadExecutionTime = 100;
 
+    private static string _proxy = string.Empty;
+
     private static List<string> _parameters = 
     [
         "pricing.PInd",
@@ -52,7 +54,7 @@ internal static class Program
         var getUrlsRetryInterval = TimeSpan.FromMinutes(_getUrlsInterval);
         var getUrlsExecutionTimeout = TimeSpan.FromMinutes(_getUrlsExecutionTime);
 
-        var httpClient = HttpService.GetHttpClient();
+        var httpClient = HttpService.GetHttpClient(_proxy);
         var getUrlsService = new GetUrlsService(httpClient, getUrlsRetryInterval);
         var downloadService = new DownloadService(httpClient, downloadsRetryInterval, _downloadsPath);
 
@@ -133,6 +135,9 @@ internal static class Program
             .Select(arg =>
                 int.TryParse(arg.Split('=')[1], out var parsedGetExecution) ? parsedGetExecution : (int?)null)
             .FirstOrDefault() ?? _getUrlsExecutionTime;
+        
+        _proxy = args
+            .FirstOrDefault(arg => arg.StartsWith("--proxy="))?.Split('=')[1] ?? _proxy;
 
         var additionalParameters = args
             .Where(arg => arg.StartsWith("--parameter="))
@@ -155,5 +160,6 @@ internal static class Program
         Console.WriteLine("  --getUrlInterval=<int>      Set the interval for GetUrls in minutes (default: 5).");
         Console.WriteLine("  --getUrlExecution=<int>     Set the execution time for GetUrls in minutes (default: 25).");
         Console.WriteLine("  --parameter=<parameter>     Add a custom parameter to the requests.");
+        Console.WriteLine("  --proxy=<string>            Add proxy.");
     }
 }

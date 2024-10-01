@@ -176,7 +176,7 @@ namespace JmihPojiloyBot_3_1.Services
                     downloadsFolder = this.downloadsPath;
                 }else
                 {
-                    downloadsFolder = this.downloadsPath + Path.DirectorySeparatorChar;
+                    downloadsFolder = string.Concat(this.downloadsPath, Path.DirectorySeparatorChar);
                 }
             }
 
@@ -186,7 +186,7 @@ namespace JmihPojiloyBot_3_1.Services
             }
 
 
-            var destonationPath = Path.Combine(downloadsFolder, $"{fileName}_.zip");
+            var destonationPath = Path.Combine(downloadsFolder, $"{fileName}.zip");
 
             await using var fs = new FileStream(destonationPath, FileMode.Create, FileAccess.Write, FileShare.None);
             await response.Content.CopyToAsync(fs);
