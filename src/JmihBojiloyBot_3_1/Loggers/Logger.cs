@@ -40,5 +40,10 @@ namespace JmihBojiloyBot_3_1.Loggers
                 await using var writer = new StreamWriter(fs);
                 await writer.WriteLineAsync(message);
             }
+
+            public static async Task ConsoleLog(string message)
+            {
+                await Console.Out.WriteLineAsync(DateTime.Now + " " + message);
+            }
         }
 }

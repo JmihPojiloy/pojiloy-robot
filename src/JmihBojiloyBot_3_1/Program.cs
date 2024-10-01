@@ -58,6 +58,8 @@ internal static class Program
 
         using var ctsUrl = new CancellationTokenSource(getUrlsExecutionTimeout);
         var ctUrl = ctsUrl.Token;
+        
+        Console.WriteLine("\nGET urls for downloads\n");
 
         var stopWatch = Stopwatch.StartNew();
 
@@ -72,7 +74,7 @@ internal static class Program
                 Console.WriteLine($"{DateTime.Now} {model?.Description} - {model?.error} - ERROR");
                 continue;
             }
-            Console.WriteLine($"{DateTime.Now} {model?.Description} - OK");
+            Console.WriteLine($"{DateTime.Now} GET url: {model.url} Short name: {model?.Description} - OK");
         }
 
         Console.WriteLine();
@@ -80,7 +82,8 @@ internal static class Program
         using var cts = new CancellationTokenSource(downloadsExecutionTimeout);
         var ct = cts.Token;
 
-
+        Console.WriteLine("\nStart downloads\n");
+        
         var fetchTasks = urlsModelsResult
             .Select(model => downloadService.DownloadFileAsync(model!, ct)).ToArray();
 
