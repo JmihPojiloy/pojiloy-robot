@@ -365,4 +365,18 @@ FodyWeavers.xsd
 # Ignore Downloads and Logs directories
 Downloads/
 Logs/
-.idea/.idea.src/.idea
+
+# Rider
+.idea/
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/dictionaries/*
+.idea/**/fileTemplates/*
+.idea/**/shelf/
+.idea/**/runConfigurations/*
+.idea/**/dataSources.xml
+.idea/**/dataSources/
+.idea/**/sqlDataSources.xml
+.idea/**/sqlDataSources/
+.idea/**/dictionaries/
+.idea/**/plugins/
