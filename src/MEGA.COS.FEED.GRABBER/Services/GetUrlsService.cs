@@ -1,8 +1,8 @@
 ﻿using System.Text.Json;
-using JmihBojiloyBot_3_1.Loggers;
-using JmihPojiloyBot_3_1.Models;
+using MEGA.COS.FEED.GRABBER.Loggers;
+using MEGA.COS.FEED.GRABBER.Models;
 
-namespace JmihPojiloyBot.Services
+namespace MEGA.COS.FEED.GRABBER.Services
 {
     public class GetUrlsService
     {
@@ -37,12 +37,16 @@ namespace JmihPojiloyBot.Services
                 {
                     throw new HttpRequestException(urlModel.ToString());
                 }
-                
+
                 await Logger.Log(urlModel.ToString());
-                
+
                 return urlModel!;
             }
-            catch (TaskCanceledException ex) when (ct.IsCancellationRequested)
+            catch (TaskCanceledException)
+            {
+                throw new OperationCanceledException();
+            }
+            catch (OperationCanceledException ex)
             {
                 var urlModelCancel = new UrlModel
                     { Description = ex.Message, error = new Error { code = 0, description = "TIME IS UP!" } };

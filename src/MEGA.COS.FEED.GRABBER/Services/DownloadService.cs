@@ -1,10 +1,10 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
-using JmihBojiloyBot_3_1.Loggers;
-using JmihPojiloyBot_3_1.Models;
+using MEGA.COS.FEED.GRABBER.Loggers;
+using MEGA.COS.FEED.GRABBER.Models;
 using Exception = System.Exception;
 
-namespace JmihPojiloyBot_3_1.Services
+namespace MEGA.COS.FEED.GRABBER.Services
 {
     public class DownloadService
     {
@@ -57,7 +57,7 @@ namespace JmihPojiloyBot_3_1.Services
                     var elapsed = stopWatch.Elapsed;
 
                     var logMessage = string.Empty;
-                    
+
                     StatisticModels.AddOrUpdate(urlModel.Description!, statisticModel,
                         (key, existingValue) =>
                         {
@@ -66,14 +66,15 @@ namespace JmihPojiloyBot_3_1.Services
                             existingValue.Description = "download";
                             existingValue.Statistic.TryAdd(
                                 existingValue.Tries, (existingValue.Description, existingValue.TotalTime));
-                            
-                            logMessage = $@"Try: {existingValue.Tries} Name: {key} (Description: {existingValue.Description}, TotalTime: {existingValue.TotalTime:hh\:mm\:ss})";
-                            
+
+                            logMessage =
+                                $@"Try: {existingValue.Tries} Name: {key} (Description: {existingValue.Description}, TotalTime: {existingValue.TotalTime:hh\:mm\:ss})";
+
                             return existingValue;
                         });
 
                     await Logger.ConsoleLog(logMessage);
-                    
+
                     return 1;
                 }
 
@@ -81,11 +82,15 @@ namespace JmihPojiloyBot_3_1.Services
             }
             catch (TaskCanceledException)
             {
+                throw new OperationCanceledException();
+            }
+            catch (OperationCanceledException)
+            {
                 stopWatch.Stop();
                 var elapsed = stopWatch.Elapsed;
 
                 var logMessage = string.Empty;
-                
+
                 StatisticModels.AddOrUpdate(urlModel.Description!, statisticModel,
                     (key, existingValue) =>
                     {
@@ -94,14 +99,15 @@ namespace JmihPojiloyBot_3_1.Services
                         existingValue.Description = "TIME IS UP!";
                         existingValue.Statistic.TryAdd(
                             existingValue.Tries, (existingValue.Description, existingValue.TotalTime));
-                        
-                        logMessage = $@"Try: {existingValue.Tries} Name: {key} (Description: {existingValue.Description}, TotalTime: {existingValue.TotalTime:hh\:mm\:ss})";
-                        
+
+                        logMessage =
+                            $@"Try: {existingValue.Tries} Name: {key} (Description: {existingValue.Description}, TotalTime: {existingValue.TotalTime:hh\:mm\:ss})";
+
                         return existingValue;
                     });
 
                 await Logger.ConsoleLog(logMessage);
-                
+
                 return 0;
             }
             catch (HttpRequestException ex)

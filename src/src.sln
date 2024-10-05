@@ -5,7 +5,7 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JmihPojiloyBot", "JmihPojiloyBot\JmihPojiloyBot.csproj", "{C446A720-2D6A-4D20-92D4-FA03C6127E0C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JmihBojiloyBot_3_1", "JmihBojiloyBot_3_1\JmihBojiloyBot_3_1.csproj", "{C7BECBE6-4431-4B87-8D26-0774C4707252}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MEGA.COS.FEED.GRABBER", "MEGA.COS.FEED.GRABBER\MEGA.COS.FEED.GRABBER.csproj", "{C7BECBE6-4431-4B87-8D26-0774C4707252}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

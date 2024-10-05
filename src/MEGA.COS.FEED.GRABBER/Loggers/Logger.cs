@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace JmihBojiloyBot_3_1.Loggers
+namespace MEGA.COS.FEED.GRABBER.Loggers
 {
         public static class Logger
         {

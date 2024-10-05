@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json.Serialization;
 
-namespace JmihPojiloyBot_3_1.Models
+namespace MEGA.COS.FEED.GRABBER.Models
 {
     public class UrlModel
     {

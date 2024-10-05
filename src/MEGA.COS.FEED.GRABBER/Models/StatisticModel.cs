@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Text;
 
-namespace JmihPojiloyBot_3_1.Models
+namespace MEGA.COS.FEED.GRABBER.Models
 {
     public class StatisticModel
     {

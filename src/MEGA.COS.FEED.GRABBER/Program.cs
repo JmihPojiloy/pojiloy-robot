@@ -1,8 +1,8 @@
 ﻿using System.Diagnostics;
-using JmihPojiloyBot.Services;
-using JmihPojiloyBot_3_1.Services;
+using MEGA.COS.FEED.GRABBER.Models;
+using MEGA.COS.FEED.GRABBER.Services;
 
-namespace JmihPojiloyBot_3_1;
+namespace MEGA.COS.FEED.GRABBER;
 
 internal static class Program
 {
@@ -12,8 +12,8 @@ internal static class Program
     private static string _downloadsPath = "Downloads";
     private static int _getUrlsInterval = 5;
     private static int _getUrlsExecutionTime = 25;
-    private static int _downloadInterval = 10;
-    private static int _downloadExecutionTime = 100;
+    private static int _downloadInterval = 1;
+    private static int _downloadExecutionTime = 5;
 
     private static string _proxy = string.Empty;
 
@@ -78,7 +78,15 @@ internal static class Program
             }
             Console.WriteLine($"{DateTime.Now} GET url: {model.url} Short name: {model?.Description} - OK");
         }
+        
+        int countEmptyUrls = urlsModelsResult.Count(model => string.IsNullOrWhiteSpace(model.url));
 
+        if (countEmptyUrls == urlsModelsResult.Length)
+        {
+            Console.WriteLine("\nNot found urls for download!\n");
+            return;
+        }
+        
         Console.WriteLine();
 
         using var cts = new CancellationTokenSource(downloadsExecutionTimeout);

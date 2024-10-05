@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+    <AssemblyName>MEGA.COS.FEED.GRABBER</AssemblyName>
+    <RootNamespace>MEGA.COS.FEED.GRABBER</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

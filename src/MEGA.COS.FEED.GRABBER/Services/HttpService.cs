@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace JmihPojiloyBot.Services
+namespace MEGA.COS.FEED.GRABBER.Services
 {
     public static class HttpService
     {
